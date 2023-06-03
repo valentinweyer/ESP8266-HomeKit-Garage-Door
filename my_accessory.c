@@ -8,7 +8,7 @@
 
 #include <homekit/homekit.h>
 #include <homekit/characteristics.h>
-//#include "settings.h"
+#include "settings.h"
 
 // Called to identify this accessory. See HAP section 6.7.6 Identify Routine
 // Generally this is called when paired successfully or click the "Identify Accessory" button in Home APP.
@@ -77,5 +77,5 @@ homekit_accessory_t *accessories[] =
 
 homekit_server_config_t config = {
 		.accessories = accessories,
-		.password = "111-11-111"
+		.password = homeKitCode
 };
