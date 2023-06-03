@@ -9,9 +9,6 @@
 #include <WiFi.h>
 #endif
 
-//const char *ssid = "JoshuaPlaysAGame";
-//const char *password = "R64Xrt}adds;";
-
 void wifi_connect() {
 	WiFi.persistent(false);
 	WiFi.mode(WIFI_STA);

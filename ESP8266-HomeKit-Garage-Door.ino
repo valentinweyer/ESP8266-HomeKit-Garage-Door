@@ -15,22 +15,11 @@
 #define HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED        1
 #define HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING       2
 #define HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING       3
-//#define HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_STOPPED       4
 #define HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_UNKNOWN       255
 
 #define HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN           0
 #define HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_CLOSED         1
 #define HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_UNKNOWN        255
-
-/*#define HOMEKIT_CHARACTERISTIC_LOCK_CURRENT_STATE_UNSECURED 0
-#define HOMEKIT_CHARACTERISTIC_LOCK_CURRENT_STATE_SECURED 1
-#define HOMEKIT_CHARACTERISTIC_LOCK_CURRENT_STATE_JAMMED 2
-#define HOMEKIT_CHARACTERISTIC_LOCK_CURRENT_STATE_UNKNOWN 3
-
-#define HOMEKIT_CHARACTERISTIC_LOCK_TARGET_STATE_UNSECURED 0
-#define HOMEKIT_CHARACTERISTIC_LOCK_TARGET_STATE_SECURED 1
-#define HOMEKIT_CHARACTERISTIC_LOCK_TARGET_STATE_JAMMED 2
-#define HOMEKIT_CHARACTERISTIC_LOCK_TARGET_STATE_UNKNOWN 3*/
 
 
 // Set GPIOs for LED and reedswitch
@@ -58,10 +47,6 @@ extern "C" homekit_server_config_t config;
 extern "C" homekit_characteristic_t cha_current_door_state;
 extern "C" homekit_characteristic_t cha_target_door_state;
 extern "C" homekit_characteristic_t cha_obstruction_detected;
-//extern "C" homekit_characteristic_t cha_name;
-//extern "C" homekit_characteristic_t cha_lock_current_state;
-//extern "C" homekit_characteristic_t cha_lock_target_state;
-
 
 static uint32_t next_heap_millis = 0;
 static uint32_t next_report_millis = 0;
@@ -81,9 +66,6 @@ void cha_target_door_state_setter(const homekit_value_t value)
   // State value requested by HomeKit
   cha_target_door_state.value = value;
 	LOG_D("Target door state: %i", value.uint8_value);
-
-  // If the current state is not equal to the target state, then we "push the button"; otherwise, we do nothing
-  //if (cha_current_door_state.value.uint8_value != cha_target_door_state.value.uint8_value) 
 
   if(cha_current_door_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN || cha_current_door_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED) 
   {
@@ -188,8 +170,6 @@ void my_homekit_setup()
   // Set the setters and getters
 	cha_current_door_state.getter = cha_current_door_state_getter;
 	cha_target_door_state.setter = cha_target_door_state_setter;
-	//cha_lock_current_state.getter = cha_lock_current_state_getter;
-	//cha_obstruction_detected.getter = cha_obstruction_detected_getter;
 
   arduino_homekit_setup(&config);
 }
@@ -198,12 +178,6 @@ void my_homekit_loop()
 {
 	arduino_homekit_loop();
 	const uint32_t t = millis();
-	if (t > next_report_millis) 
-  {
-		// report sensor values every 10 seconds
-		next_report_millis = t + 1 * 1000;
-		my_homekit_report();
-	}
 	if (t > next_heap_millis) 
   {
 		// show heap info every 5 seconds
@@ -213,12 +187,6 @@ void my_homekit_loop()
 	}
 }
 
-void my_homekit_report() 
-{
-	//cha_temperature.value.float_value = temperature_value;
-	//LOG_D("Current temperature: %.1f", temperature_value);
-	//homekit_characteristic_notify(&cha_temperature, cha_temperature.value);
-}
 
 
 // Called when getting current door state
