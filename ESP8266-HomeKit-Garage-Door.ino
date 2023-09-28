@@ -2,6 +2,8 @@
 #include <arduino_homekit_server.h>
 #include "wifi_info.h"
 
+#include <ESP8266mDNS.h>
+
 #include <Adafruit_Sensor.h>
 
 
@@ -139,9 +141,9 @@ void setup()
     case HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING: 
       cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN; 
       break;
-    default: 
-      cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_UNKNOWN; 
-      break;
+    //default: 
+      //cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_UNKNOWN; 
+      //break;
   }  
   homekit_characteristic_notify(&cha_target_door_state, cha_target_door_state.value);
 
@@ -166,7 +168,6 @@ void loop()
 
 void my_homekit_setup() 
 {
-
   // Set the setters and getters
 	cha_current_door_state.getter = cha_current_door_state_getter;
 	cha_target_door_state.setter = cha_target_door_state_setter;
@@ -184,6 +185,7 @@ void my_homekit_loop()
 		next_heap_millis = t + 5 * 1000;
 		LOG_D("Free heap: %d, HomeKit clients: %d",
 				ESP.getFreeHeap(), arduino_homekit_connected_clients_count());
+    MDNS.announce();
 	}
 }
 
@@ -204,44 +206,53 @@ homekit_value_t cha_current_door_state_getter()
   if (digitalRead(openSensorPin) == HIGH) 
   {
     cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN;
+    cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN;
     Serial.println("OPEN");
   } 
   else if(digitalRead(closedSensorPin) == HIGH) 
   {
     cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED;
+    cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_CLOSED;
     Serial.println("CLOSED");
   } 
+  
   else if(digitalRead(openSensorPin) == LOW && digitalRead(closedSensorPin) == LOW)
   {
-    Serial.println("Neither closed nor open");
-    // If neither, then the door is in between switches, so we use the last known state to determine which way it's probably going
-    if(current_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED) 
+    Serial.println("EEEE");
+    delay(1000);
+    if(digitalRead(openSensorPin) == LOW && digitalRead(closedSensorPin) == LOW)
     {
-      // Current door state was "closed" so we are probably now "opening"
-      cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING;
-      Serial.println("OPENING");
-    } 
-    else if(current_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN) 
-    {
-      // Current door state was "opened" so we are probably now "closing"
-      cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING;
-      Serial.println("CLOSING");
-    }
+      Serial.println("Neither closed nor open");
+      // If neither, then the door is in between switches, so we use the last known state to determine which way it's probably going
+      if(current_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSED) 
+      {
+        // Current door state was "closed" so we are probably now "opening"
+        cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING;
+        Serial.println("OPENING");
+      } 
+      else if(current_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPEN) 
+      {
+        // Current door state was "opened" so we are probably now "closing"
+        cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING;
+        Serial.println("CLOSING");
+      }
 
-    // If it is traveling, then it might have been started by the button in the garage. Set the new target state:
-    if (cha_current_door_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING) 
-    {
-      cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN;
-    } 
-    else if(cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING) 
-    {
-      cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_CLOSED;
+      // If it is traveling, then it might have been started by the button in the garage. Set the new target state:
+      if (cha_current_door_state.value.uint8_value == HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_OPENING) 
+      {
+        cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_OPEN;
+      } 
+      else if(cha_current_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_CURRENT_DOOR_STATE_CLOSING) 
+      {
+        cha_target_door_state.value.uint8_value = HOMEKIT_CHARACTERISTIC_TARGET_DOOR_STATE_CLOSED;
+      }
+      // ... and then notify HomeKit clients
+      LOG_D("Target door state: %i", cha_target_door_state.value.uint8_value);
+      homekit_characteristic_notify(&cha_target_door_state, cha_target_door_state.value);
     }
-    // ... and then notify HomeKit clients
-  	LOG_D("Target door state: %i", cha_target_door_state.value.uint8_value);
-    homekit_characteristic_notify(&cha_target_door_state, cha_target_door_state.value);
   }
 
+  LOG_D("Target door state: %i", cha_target_door_state.value.uint8_value);
 	LOG_D("Current door state: %i", cha_current_door_state.value.uint8_value);
 	return cha_current_door_state.value;
 }
